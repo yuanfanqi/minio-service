@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.minioservice.dao.LogMinioOperateDao">
+
+    <resultMap type="com.minioservice.entity.LogMinioOperate" id="LogMinioOperateMap">
+        <result property="id" column="id" jdbcType="INTEGER"/>
+        <result property="fileName" column="file_name" jdbcType="VARCHAR"/>
+        <result property="sourceService" column="source_service" jdbcType="VARCHAR"/>
+        <result property="addrMinio" column="addr_minio" jdbcType="VARCHAR"/>
+        <result property="fileHash" column="file_hash" jdbcType="VARCHAR"/>
+        <result property="fileDesc" column="file_desc" jdbcType="VARCHAR"/>
+        <result property="operate" column="operate" jdbcType="VARCHAR"/>
+        <result property="replaceTime" column="replace_time" jdbcType="TIMESTAMP"/>
+        <result property="isDelete" column="is_delete" jdbcType="VARCHAR"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="createUser" column="create_user" jdbcType="VARCHAR"/>
+        <result property="modifyTime" column="modify_time" jdbcType="TIMESTAMP"/>
+        <result property="modifyUser" column="modify_user" jdbcType="VARCHAR"/>
+    </resultMap>
+
+    <!--查询单个-->
+    <select id="queryById" resultMap="LogMinioOperateMap">
+        select
+          id, file_name, source_service, addr_minio, file_hash, file_desc, operate, replace_time, is_delete, create_time, create_user, modify_time, modify_user
+        from log_minio_operate
+        where id = #{id}
+    </select>
+
+    <!--查询指定行数据-->
+    <select id="queryAllByLimit" resultMap="LogMinioOperateMap">
+        select
+          id, file_name, source_service, addr_minio, file_hash, file_desc, operate, replace_time, is_delete, create_time, create_user, modify_time, modify_user
+        from log_minio_operate
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="fileName != null and fileName != ''">
+                and file_name = #{fileName}
+            </if>
+            <if test="sourceService != null and sourceService != ''">
+                and source_service = #{sourceService}
+            </if>
+            <if test="addrMinio != null and addrMinio != ''">
+                and addr_minio = #{addrMinio}
+            </if>
+            <if test="fileHash != null and fileHash != ''">
+                and file_hash = #{fileHash}
+            </if>
+            <if test="fileDesc != null and fileDesc != ''">
+                and file_desc = #{fileDesc}
+            </if>
+            <if test="operate != null and operate != ''">
+                and operate = #{operate}
+            </if>
+            <if test="replaceTime != null">
+                and replace_time = #{replaceTime}
+            </if>
+            <if test="isDelete != null and isDelete != ''">
+                and is_delete = #{isDelete}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="createUser != null">
+                and create_user = #{createUser}
+            </if>
+            <if test="modifyTime != null">
+                and modify_time = #{modifyTime}
+            </if>
+            <if test="modifyUser != null">
+                and modify_user = #{modifyUser}
+            </if>
+        </where>
+        limit #{pageable.offset}, #{pageable.pageSize}
+    </select>
+
+    <!--统计总行数-->
+    <select id="count" resultType="java.lang.Long">
+        select count(1)
+        from log_minio_operate
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="fileName != null and fileName != ''">
+                and file_name = #{fileName}
+            </if>
+            <if test="sourceService != null and sourceService != ''">
+                and source_service = #{sourceService}
+            </if>
+            <if test="addrMinio != null and addrMinio != ''">
+                and addr_minio = #{addrMinio}
+            </if>
+            <if test="fileHash != null and fileHash != ''">
+                and file_hash = #{fileHash}
+            </if>
+            <if test="fileDesc != null and fileDesc != ''">
+                and file_desc = #{fileDesc}
+            </if>
+            <if test="operate != null and operate != ''">
+                and operate = #{operate}
+            </if>
+            <if test="replaceTime != null">
+                and replace_time = #{replaceTime}
+            </if>
+            <if test="isDelete != null and isDelete != ''">
+                and is_delete = #{isDelete}
+            </if>
+            <if test="createTime != null">
+                and create_time = #{createTime}
+            </if>
+            <if test="createUser != null">
+                and create_user = #{createUser}
+            </if>
+            <if test="modifyTime != null">
+                and modify_time = #{modifyTime}
+            </if>
+            <if test="modifyUser != null">
+                and modify_user = #{modifyUser}
+            </if>
+        </where>
+    </select>
+
+    <!--新增所有列-->
+    <insert id="insert" keyProperty="id" useGeneratedKeys="true">
+        insert into log_minio_operate(file_name, source_service, addr_minio, file_hash, file_desc, operate, replace_time, is_delete, create_time, create_user, modify_time, modify_user)
+        values (#{fileName}, #{sourceService}, #{addrMinio}, #{fileHash}, #{fileDesc}, #{operate}, #{replaceTime}, #{isDelete}, #{createTime}, #{createUser}, #{modifyTime}, #{modifyUser})
+    </insert>
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into log_minio_operate(file_name, source_service, addr_minio, file_hash, file_desc, operate, replace_time, is_delete, create_time, create_user, modify_time, modify_user)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+        (#{entity.fileName}, #{entity.sourceService}, #{entity.addrMinio}, #{entity.fileHash}, #{entity.fileDesc}, #{entity.operate}, #{entity.replaceTime}, #{entity.isDelete}, #{entity.createTime}, #{entity.createUser}, #{entity.modifyTime}, #{entity.modifyUser})
+        </foreach>
+    </insert>
+
+    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into log_minio_operate(file_name, source_service, addr_minio, file_hash, file_desc, operate, replace_time, is_delete, create_time, create_user, modify_time, modify_user)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.fileName}, #{entity.sourceService}, #{entity.addrMinio}, #{entity.fileHash}, #{entity.fileDesc}, #{entity.operate}, #{entity.replaceTime}, #{entity.isDelete}, #{entity.createTime}, #{entity.createUser}, #{entity.modifyTime}, #{entity.modifyUser})
+        </foreach>
+        on duplicate key update
+        file_name = values(file_name),
+        source_service = values(source_service),
+        addr_minio = values(addr_minio),
+        file_hash = values(file_hash),
+        file_desc = values(file_desc),
+        operate = values(operate),
+        replace_time = values(replace_time),
+        is_delete = values(is_delete),
+        create_time = values(create_time),
+        create_user = values(create_user),
+        modify_time = values(modify_time),
+        modify_user = values(modify_user)
+    </insert>
+
+    <!--通过主键修改数据-->
+    <update id="update">
+        update log_minio_operate
+        <set>
+            <if test="fileName != null and fileName != ''">
+                file_name = #{fileName},
+            </if>
+            <if test="sourceService != null and sourceService != ''">
+                source_service = #{sourceService},
+            </if>
+            <if test="addrMinio != null and addrMinio != ''">
+                addr_minio = #{addrMinio},
+            </if>
+            <if test="fileHash != null and fileHash != ''">
+                file_hash = #{fileHash},
+            </if>
+            <if test="fileDesc != null and fileDesc != ''">
+                file_desc = #{fileDesc},
+            </if>
+            <if test="operate != null and operate != ''">
+                operate = #{operate},
+            </if>
+            <if test="replaceTime != null">
+                replace_time = #{replaceTime},
+            </if>
+            <if test="isDelete != null and isDelete != ''">
+                is_delete = #{isDelete},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime},
+            </if>
+            <if test="createUser != null">
+                create_user = #{createUser},
+            </if>
+            <if test="modifyTime != null">
+                modify_time = #{modifyTime},
+            </if>
+            <if test="modifyUser != null">
+                modify_user = #{modifyUser},
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!--通过主键删除-->
+    <delete id="deleteById">
+        delete from log_minio_operate where id = #{id}
+    </delete>
+
+<!--    查询单个文件是否存在：文件名or文件hash是否相同-->
+    <select id="isFileExist" resultMap="LogMinioOperateMap">
+        select id, file_name, source_service, file_hash, is_delete
+        from log_minio_operate
+        <where>
+            source_service = #{sourceService}
+            and is_delete = "0"
+            and (file_name = #{fileName} or file_hash = #{fileHash})
+        </where>
+    </select>
+
+<!--    通过hash和name更新数据操作记录-->
+
+</mapper>
+
