@@ -1,7 +1,7 @@
 package com.minioservice.enums;
 
 
-public class ResponseCode {
+public class MsgEnum {
     /** 请求成功 */
     public static final Integer SUCCESS = 200;
     /** 请求失败 */
@@ -14,4 +14,11 @@ public class ResponseCode {
     public static final Integer BAD_REQUEST = 400;
     /** prodCode不能为空 */
     public static final Integer PRODCODE_IS_EMPTY = 450;
+    /** 上传文件不能为空 */
+    public static final String FILE_IS_EMPTY = "上传失败：上传文件不能为空";
+    /** 上传文件已存在，且未授权覆盖 */
+    public static final String NO_AUTH_REPLACE_FILE = "上传失败：上传文件已存在，且未授权覆盖";
+    /** 上传失败：minIO建立连接失败 */
+    public static final String MINIO_CONNECT_FAIL = "上传失败：minIO建立连接失败";
+
 }

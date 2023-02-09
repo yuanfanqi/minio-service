@@ -9,7 +9,11 @@ public enum CommonEnum {
     /** 否or失败 */
     FALSE("0"),
     /** 是or成功 */
-    TRUE("1");
+    TRUE("1"),
+    /** 失败 */
+    E("E"),
+    /** 成功 */
+    S("S");
 
     final String statusVal;
 

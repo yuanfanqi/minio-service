@@ -1,8 +1,8 @@
 package com.minioservice.commonModel;
 
-import com.minioservice.enums.ResponseCode;
+import com.minioservice.enums.MsgEnum;
 
-public class Result<T> {
+public class ResultRes<T> {
 
     /** 状态码 */
     private Integer code;
@@ -11,22 +11,21 @@ public class Result<T> {
     /** 返回信息data */
     private T data;
 
-    public Result() {
-
+    public ResultRes() {
     }
 
-    public Result(Integer code, String msg, T data) {
+    public ResultRes(Integer code, String msg, T data) {
         this.code = code;
         this.msg = msg;
         this.data = data;
     }
 
-    public Result(Integer code, T data) {
+    public ResultRes(Integer code, T data) {
         this.code = code;
         this.data = data;
     }
 
-    public Result(Integer code, String msg) {
+    public ResultRes(Integer code, String msg) {
         this.code = code;
         this.msg = msg;
     }
@@ -60,16 +59,16 @@ public class Result<T> {
      * @Author: song
      * @Date: 2023/2/9 13:59
      */
-    public Result ok(String msg) {
-        return new Result<>(ResponseCode.SUCCESS, msg);
+    public static <T> ResultRes ok(String msg) {
+        return new ResultRes<>(MsgEnum.SUCCESS, msg);
     }
     /**
      * @Description: 返回成功
      * @Author: song
      * @Date: 2023/2/9 13:59
      */
-    public Result ok(T data) {
-        return new Result<>(ResponseCode.SUCCESS, data);
+    public static <T> ResultRes ok(T data) {
+        return new ResultRes<>(MsgEnum.SUCCESS, data);
     }
 
     /**
@@ -77,16 +76,16 @@ public class Result<T> {
      * @Author: song
      * @Date: 2023/2/9 13:59
      */
-    public Result fail(String msg) {
-        return new Result<>(ResponseCode.SUCCESS, msg);
+    public static ResultRes fail(String msg) {
+        return new ResultRes<>(MsgEnum.FAIL, msg);
     }
     /**
      * @Description: 返回失败
      * @Author: song
      * @Date: 2023/2/9 13:59
      */
-    public Result fail(T data) {
-        return new Result<>(ResponseCode.SUCCESS, data);
+    public static <T> ResultRes fail(T data) {
+        return new ResultRes<>(MsgEnum.FAIL, data);
     }
 
 

@@ -3,9 +3,11 @@ package com.minioservice.service;
 import com.minioservice.entity.LogMinioOperate;
 import com.minioservice.enums.CommonEnum;
 import com.minioservice.enums.FileOperateEnum;
+import com.minioservice.enums.MsgEnum;
 import com.minioservice.utils.FileHashUtil;
 import com.minioservice.utils.MinioConfigUtil;
 import com.minioservice.utils.MinioPolicyUtil;
+import com.minioservice.commonModel.ResultRes;
 import io.minio.*;
 import io.minio.messages.Item;
 import org.slf4j.Logger;
@@ -30,26 +32,27 @@ public class MinioBaseService {
     @Autowired
     LogMinioOperateService logMinioOperateService;
 
-     /**
+    /**
      * 文件上传
      * isReplace[false, true]
      * @param: [inFile, prodCode, token]
-     * @return: Map<String, String>
+     * @return: Result
      * @Author: song
      * @Date: 2023/2/3 11:27
      */
-    public Map<String, String> doUpload(MultipartFile inFile, String prodCode, String token, String desc, boolean isReplace) throws Exception {
-        Map<String, String> res = new HashMap<String, String>();
+    public ResultRes doUpload(MultipartFile inFile, String prodCode, String token, String desc, boolean isReplace) throws Exception {
         //todo token获取用户信息
         logger.info("=================文件上传：服务" + prodCode + "，操作用户");
         if (inFile.isEmpty()) {
-            logger.info("上传失败：上传文件不能为空");
-            res.put("STATUS", "E");
-            res.put("MSG", "上传失败：上传文件不能为空");
-            return res;
+            logger.info(MsgEnum.FILE_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_IS_EMPTY);
         }
-        res = uploadForeach(inFile, prodCode, desc, isReplace);
-        return res;
+        Map<String, String> uploadRes = uploadForeach(inFile, prodCode, desc, isReplace);
+        if (CommonEnum.E.getStatusVal().equals(uploadRes.get("STATUS"))) {
+            return ResultRes.fail(uploadRes.get("MSG"));
+        } else {
+            return ResultRes.ok(uploadRes.get("MSG"));
+        }
     }
 
     /**
@@ -65,14 +68,14 @@ public class MinioBaseService {
         MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
         MinioClient minioClient = minioConfigUtil.getMinioClient();
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(prodCode).build())) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "删除失败：该文件不存在");
             return res;
         }
         //判断文件是否已存在:数据库
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
         if (fileExist.isEmpty()) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "删除失败：该文件不存在");
             return res;
         }
@@ -84,7 +87,7 @@ public class MinioBaseService {
             statObject = null;
         }
         if (null == statObject) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "删除失败：该文件不存在");
             return res;
         }
@@ -107,7 +110,7 @@ public class MinioBaseService {
         deleteParam.setId(fileExist.get(0).getId());
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(prodCode).object(fileName).build());
         logMinioOperateService.update(deleteParam);
-        res.put("STATUS", "S");
+        res.put("STATUS", CommonEnum.S.getStatusVal());
         res.put("MSG", "删除成功");
         return res;
     }
@@ -134,13 +137,13 @@ public class MinioBaseService {
      */
     public Map<String, String> doDownload (String fileName, String prodCode, String token, String path) {
         Map<String, String> res = new HashMap<String, String>();
-        res.put("STATUS", "S");
+        res.put("STATUS", CommonEnum.S.getStatusVal());
         res.put("MSG", "下载成功");
 
         //判断文件是否已存在:数据库
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
         if (fileExist.isEmpty()) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "删除失败：该文件不存在");
             return res;
         }
@@ -151,18 +154,18 @@ public class MinioBaseService {
         try {
             statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
             if (null == statObject) {
-                res.put("STATUS", "E");
+                res.put("STATUS", CommonEnum.E.getStatusVal());
                 res.put("MSG", "下载失败：文件不存在");
             }
         } catch (Exception e) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "下载失败：" + e.getMessage());
         }
         path = path + "/" + statObject.object();
         try {
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(prodCode).object(fileName).filename(path).build());
         } catch (Exception e) {
-            res.put("STATUS", "E");
+            res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "下载失败：" + e.getMessage());
         }
         logger.info("=================文件下载完成=================");
@@ -178,26 +181,23 @@ public class MinioBaseService {
     /**
      * @Description: 多文件上传
      * @param: [inFileList, prodCode, token, desc, isReplace]
-     * @return: java.util.Map<java.lang.String,java.lang.String>
+     * @return: ResultRes
      * @Author: song
      * @Date: 2023/2/9 13:55
      */
-    public Map<String, String> doUploadFiles(MultipartFile[] inFileList, String prodCode, String token, String desc, boolean isReplace) throws Exception {
-        Map<String, String> res = new HashMap<String, String>();
+    public ResultRes doUploadFiles(MultipartFile[] inFileList, String prodCode, String token, String desc, boolean isReplace) throws Exception {
         //todo token获取用户信息
         logger.info("=================多文件上传：服务" + prodCode + "，操作用户");
 
         if (null == inFileList || 0 == inFileList.length) {
-            logger.info("上传失败：上传文件不能为空");
-            res.put("STATUS", "E");
-            res.put("MSG", "上传失败：上传文件不能为空");
-            return res;
+            logger.info(MsgEnum.FILE_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_IS_EMPTY);
         }
         List<String> urlList = new ArrayList<>();
         String errMsg = "上传失败：";
         for (MultipartFile file : inFileList) {
             Map<String, String> fileRes = uploadForeach(file, prodCode, desc, isReplace);
-            if ("S".equals(fileRes.get("STATUS"))) {
+            if (CommonEnum.S.getStatusVal().equals(fileRes.get("STATUS"))) {
                 urlList.add(fileRes.get("MSG"));
             } else {
                 errMsg += file.getOriginalFilename();
@@ -205,13 +205,10 @@ public class MinioBaseService {
         }
         logger.info(errMsg);
         if (urlList.isEmpty()) {
-            res.put("STATUS", "E");
-            res.put("MSG", errMsg);
+            return ResultRes.fail(errMsg);
         } else {
-            res.put("STATUS", "S");
-            res.put("MSG", urlList.toString());
+            return ResultRes.ok(urlList);
         }
-        return res;
     }
     //多文件下载
     //多文件删除
@@ -231,9 +228,9 @@ public class MinioBaseService {
         String fileHash = fileHashUtil.getFileHash(inFile);
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(inFile.getOriginalFilename(), fileHash, prodCode);
         if (0 < fileExist.size() && !isReplace) {
-            logger.info("上传失败：文件已存在，且未授权覆盖");
-            res.put("STATUS", "E");
-            res.put("MSG", "上传失败：文件已存在，且未授权覆盖");
+            logger.info(MsgEnum.NO_AUTH_REPLACE_FILE);
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.NO_AUTH_REPLACE_FILE);
             return res;
         }
         //end  上传文件前：判断是否存在同样的图片（通过hash+fileName）
@@ -243,9 +240,9 @@ public class MinioBaseService {
         try {
             minioClient = minioConfigUtil.getMinioClient();
         } catch (Exception e) {
-            logger.error("上传失败：minIO建立连接失败");
-            res.put("STATUS", "E");
-            res.put("MSG", "minIO建立连接失败");
+            logger.error(MsgEnum.MINIO_CONNECT_FAIL);
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.MINIO_CONNECT_FAIL);
             return res;
         }
         //判断服务桶目录是否存在
@@ -263,10 +260,9 @@ public class MinioBaseService {
             statObject = null;
         }
         if (null != statObject && !isReplace) {
-            infoRes = "文件名已存在，且未授权覆盖";
-            logger.info("=================文件上传失败：" + inFile.getOriginalFilename() + infoRes);
-            res.put("STATUS", "E");
-            res.put("MSG", infoRes);
+            logger.info(inFile.getOriginalFilename() + MsgEnum.NO_AUTH_REPLACE_FILE);
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.NO_AUTH_REPLACE_FILE);
             return res;
         }
         InputStream inputStream = inFile.getInputStream();
@@ -284,7 +280,7 @@ public class MinioBaseService {
         if (!fileExist.isEmpty() && fileHash.equals(fileExist.get(0).getFileHash())) {
             minioClient.removeObject(RemoveObjectArgs.builder().bucket(prodCode).object(fileExist.get(0).getFileName()).build());
         }
-        res.put("STATUS", "S");
+        res.put("STATUS", CommonEnum.S.getStatusVal());
         res.put("MSG", infoRes);
         //上传成功记录数据库
         LogMinioOperate uploadParam = new LogMinioOperate();

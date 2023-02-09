@@ -1,5 +1,6 @@
 package com.minioservice.controller;
 
+import com.minioservice.commonModel.ResultRes;
 import com.minioservice.service.MinioBaseService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @Auther: song
+ * @Author: song
  * @Date: 2023/2/3 10:56
  * @Description:
  */
@@ -35,25 +36,21 @@ public class MinioCommonController {
      */
     @PostMapping("/minioUpload")
     @ResponseBody
-    public Map<String, String> upload (@RequestParam("inFile") MultipartFile inFile,
-                       @RequestParam("prodCode") String prodCode,
-                       @RequestParam("token") String token,
-                       @RequestParam(value = "tags",required = false) String tags,
-                       @RequestParam("isReplace") boolean isReplace
+    public ResultRes upload (@RequestParam("inFile") MultipartFile inFile,
+                             @RequestParam("prodCode") String prodCode,
+                             @RequestParam("token") String token,
+                             @RequestParam(value = "tags",required = false) String tags,
+                             @RequestParam("isReplace") boolean isReplace
     ) {
         logger.info("===================进入文件上传接口===================");
         //todo 参数验证
         //todo tags是否为中文
-        Map<String, String> res = new HashMap<String, String>();
         try {
-            res = minioBaseService.doUpload(inFile, prodCode, token, tags, isReplace);
+            return minioBaseService.doUpload(inFile, prodCode, token, tags, isReplace);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            res.put("STATUS", "E");
-            res.put("MSG", "上传失败：" + e.getMessage());
+            return ResultRes.fail(e.getMessage());
         }
-        logger.info("===================文件上传接口结束===================");
-        return res;
     }
 
     /**
@@ -140,7 +137,7 @@ public class MinioCommonController {
      */
     @PostMapping("/minioUploadFiles")
     @ResponseBody
-    public Map<String, String> uploadFiles (@RequestParam("inFileList") MultipartFile[] inFileList,
+    public ResultRes uploadFiles (@RequestParam("inFileList") MultipartFile[] inFileList,
                                        @RequestParam("prodCode") String prodCode,
                                        @RequestParam("token") String token,
                                        @RequestParam(value = "tags",required = false) String tags,
@@ -149,16 +146,12 @@ public class MinioCommonController {
         logger.info("===================进入多文件上传接口===================");
         //todo 参数验证
         //todo tags是否为中文
-        Map<String, String> res = new HashMap<String, String>();
         try {
-            res = minioBaseService.doUploadFiles(inFileList, prodCode, token, tags, isReplace);
+            return minioBaseService.doUploadFiles(inFileList, prodCode, token, tags, isReplace);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            res.put("STATUS", "E");
-            res.put("MSG", "上传失败：" + e.getMessage());
+            return ResultRes.fail(e.getMessage());
         }
-        logger.info("===================多文件上传接口结束===================");
-        return res;
     }
     //多文件下载
     //多文件删除
