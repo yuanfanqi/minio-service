@@ -70,6 +70,14 @@ public class ResultRes<T> {
     public static <T> ResultRes ok(T data) {
         return new ResultRes<>(MsgEnum.SUCCESS, data);
     }
+    /**
+     * @Description: 返回成功
+     * @Author: song
+     * @Date: 2023/2/9 13:59
+     */
+    public static <T> ResultRes ok(String msg, T data) {
+        return new ResultRes<>(MsgEnum.SUCCESS, msg, data);
+    }
 
     /**
      * @Description: 返回失败
@@ -87,6 +95,13 @@ public class ResultRes<T> {
     public static <T> ResultRes fail(T data) {
         return new ResultRes<>(MsgEnum.FAIL, data);
     }
-
+    /**
+     * @Description: 返回失败
+     * @Author: song
+     * @Date: 2023/2/9 13:59
+     */
+    public static <T> ResultRes fail(String msg, T data) {
+        return new ResultRes<>(MsgEnum.FAIL, msg, data);
+    }
 
 }

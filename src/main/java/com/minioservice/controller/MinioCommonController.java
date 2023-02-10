@@ -49,36 +49,32 @@ public class MinioCommonController {
             return minioBaseService.doUpload(inFile, prodCode, token, tags, isReplace);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            return ResultRes.fail(e.getMessage());
+            return ResultRes.fail("文件上传失败：" + e.getMessage());
         }
     }
 
     /**
      * @Description: 文件删除接口
      * @param: [fileName(文件名需带文件类型后缀), prodCode, token, isLogicDel]
-     * @return: java.util.Map<java.lang.String,java.lang.String>
+     * @return: ResultRes
      * @Author: song
      * @Date: 2023/2/7 16:56
      */
     @PostMapping("/removeFile")
     @ResponseBody
-    public Map<String, String> removeFile (
+    public ResultRes removeFile (
             @RequestParam("fileName") String fileName,
             @RequestParam("prodCode") String prodCode,
             @RequestParam("token") String token,
             @RequestParam("isLogicDel") boolean isLogicDel
     ) {
         logger.info("===================进入文件删除接口===================");
-        Map<String, String> res = new HashMap<String, String>();
         //todo token验证
         try {
-            res = minioBaseService.removeFile(fileName, prodCode, token, isLogicDel);
+            return minioBaseService.removeFile(fileName, prodCode, token, isLogicDel);
         } catch (Exception e) {
-            res.put("STATUS", "E");
-            res.put("MSG", "删除失败：" + e.getMessage());
+            return ResultRes.fail("文件删除失败：" + e.getMessage());
         }
-        logger.info("===================文件删除接口结束===================");
-        return res;
     }
 
     /**
@@ -150,10 +146,37 @@ public class MinioCommonController {
             return minioBaseService.doUploadFiles(inFileList, prodCode, token, tags, isReplace);
         } catch (Exception e) {
             logger.error(e.getMessage());
-            return ResultRes.fail(e.getMessage());
+            return ResultRes.fail("多文件上传失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * @Description: 多文件删除
+     * @param: [fileArr, prodCode, token, isLogicDel]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/9 16:18
+     */
+    @PostMapping("/removeFileList")
+    @ResponseBody
+    public ResultRes removeFileList (
+            @RequestParam("fileList") List<String> fileList,
+            @RequestParam("prodCode") String prodCode,
+            @RequestParam("token") String token,
+            @RequestParam("isLogicDel") boolean isLogicDel
+    ) {
+        logger.info("===================进入文件删除接口===================");
+        //todo token验证
+        try {
+            return minioBaseService.removeFileList(fileList, prodCode, token, isLogicDel);
+        } catch (Exception e) {
+            logger.info(e.getMessage());
+            return ResultRes.fail("删除失败：" + e.getMessage());
         }
     }
     //多文件下载
+
     //多文件删除
+
     //文件tags的修改
 }

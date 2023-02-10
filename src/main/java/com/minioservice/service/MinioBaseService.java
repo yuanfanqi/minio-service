@@ -47,7 +47,7 @@ public class MinioBaseService {
             logger.info(MsgEnum.FILE_IS_EMPTY);
             return ResultRes.fail(MsgEnum.FILE_IS_EMPTY);
         }
-        Map<String, String> uploadRes = uploadForeach(inFile, prodCode, desc, isReplace);
+        Map<String, String> uploadRes = uploadOperate(inFile, prodCode, desc, isReplace);
         if (CommonEnum.E.getStatusVal().equals(uploadRes.get("STATUS"))) {
             return ResultRes.fail(uploadRes.get("MSG"));
         } else {
@@ -62,57 +62,22 @@ public class MinioBaseService {
      * @Author: song
      * @Date: 2023/2/6 13:43
      */
-    public Map<String, String> removeFile (String fileName, String prodCode, String token, boolean isLogicDel) throws Exception {
-        Map<String, String> res = new HashMap<String, String>();
+    public ResultRes removeFile (String fileName, String prodCode, String token, boolean isLogicDel) throws Exception {
 
-        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
-        MinioClient minioClient = minioConfigUtil.getMinioClient();
-        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(prodCode).build())) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "删除失败：该文件不存在");
-            return res;
-        }
-        //判断文件是否已存在:数据库
-        List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
-        if (fileExist.isEmpty()) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "删除失败：该文件不存在");
-            return res;
-        }
-        //判断文件是否已存在
-        StatObjectResponse statObject = null;
-        try {
-            statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
-        } catch (Exception e) {
-            statObject = null;
-        }
-        if (null == statObject) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "删除失败：该文件不存在");
-            return res;
-        }
+        //token判断
 
-        LogMinioOperate deleteParam = new LogMinioOperate();
-        if (isLogicDel) {
-            String delBucket = minioConfigUtil.getDelBucket(prodCode);
-            //判断服务桶目录是否存在
-            if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(delBucket).build())) {
-                minioClient.makeBucket(MakeBucketArgs.builder().bucket(delBucket).build());
-                MinioPolicyUtil policyUtil = new MinioPolicyUtil();
-                minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(delBucket).config(policyUtil.getPolicy(delBucket)).build());
-            }
-            //逻辑删除--可移动到备份文件夹
-            minioClient.copyObject(CopyObjectArgs.builder().bucket(delBucket).object(fileName).source(CopySource.builder().bucket(prodCode).object(fileName).build()).build());
-            deleteParam.setSourceService(delBucket);
+        if (fileName.isEmpty()) {
+            logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
         }
-        deleteParam.setIsDelete(CommonEnum.TRUE.getStatusVal());
-        deleteParam.setModifyUser("231");
-        deleteParam.setId(fileExist.get(0).getId());
-        minioClient.removeObject(RemoveObjectArgs.builder().bucket(prodCode).object(fileName).build());
-        logMinioOperateService.update(deleteParam);
-        res.put("STATUS", CommonEnum.S.getStatusVal());
-        res.put("MSG", "删除成功");
-        return res;
+        //做删除操作
+        Map<String, String> res = removeOperate(fileName, prodCode, isLogicDel);
+
+        if (CommonEnum.E.getStatusVal().equals(res.get("STATUS"))) {
+            return ResultRes.fail(res.get("MSG"));
+        } else {
+            return ResultRes.ok(res.get("MSG"));
+        }
     }
 
     public List<String> getBucketFileList(String prodCode, String token) throws Exception {
@@ -194,9 +159,9 @@ public class MinioBaseService {
             return ResultRes.fail(MsgEnum.FILE_IS_EMPTY);
         }
         List<String> urlList = new ArrayList<>();
-        String errMsg = "上传失败：";
+        String errMsg = null;
         for (MultipartFile file : inFileList) {
-            Map<String, String> fileRes = uploadForeach(file, prodCode, desc, isReplace);
+            Map<String, String> fileRes = uploadOperate(file, prodCode, desc, isReplace);
             if (CommonEnum.S.getStatusVal().equals(fileRes.get("STATUS"))) {
                 urlList.add(fileRes.get("MSG"));
             } else {
@@ -205,9 +170,29 @@ public class MinioBaseService {
         }
         logger.info(errMsg);
         if (urlList.isEmpty()) {
-            return ResultRes.fail(errMsg);
+            return ResultRes.fail("上传失败：" + errMsg);
         } else {
-            return ResultRes.ok(urlList);
+            return ResultRes.ok(null == errMsg ? null : "上传失败：" + errMsg, urlList);
+        }
+    }
+
+    //多文件删除
+    public ResultRes removeFileList (List<String> fileList, String prodCode, String token, boolean isLogicDel) throws Exception {
+        //token判断
+        if (null == fileList || fileList.isEmpty()) {
+            ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
+        }
+        String errMsg = null;
+        for (String file : fileList) {
+            Map<String, String> operateRes = removeOperate(file, prodCode, isLogicDel);
+            if (CommonEnum.E.getStatusVal().equals(operateRes.get("STATUS"))) {
+                errMsg += operateRes.get("MSG");
+            }
+        }
+        if (null == errMsg) {
+            return ResultRes.ok("文件全部删除成功");
+        } else {
+            return ResultRes.ok("文件部分删除成功：" + errMsg);
         }
     }
     //多文件下载
@@ -221,7 +206,7 @@ public class MinioBaseService {
      * @Author: song
      * @Date: 2023/2/9 11:11
      */
-    private Map<String, String> uploadForeach (MultipartFile inFile, String prodCode, String desc, boolean isReplace) throws Exception {
+    private Map<String, String> uploadOperate(MultipartFile inFile, String prodCode, String desc, boolean isReplace) throws Exception {
         Map<String, String> res = new HashMap<String, String>();
         //上传文件前：判断是否存在同样的图片（通过hash+fileName）
         FileHashUtil fileHashUtil = new FileHashUtil();
@@ -305,6 +290,65 @@ public class MinioBaseService {
             //insert
             logMinioOperateService.insert(uploadParam);
         }
+        return res;
+    }
+
+    /**
+     * @Description: 文件删除操作
+     * @Author: song
+     * @Date: 2023/2/9 17:39
+     */
+    private Map<String, String> removeOperate (String fileName, String prodCode, boolean isLogicDel) throws Exception {
+        Map<String, String> res = new HashMap<>();
+        //判断文件是否已存在:数据库
+        List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
+        if (fileExist.isEmpty()) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
+            return res;
+        }
+
+        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
+        MinioClient minioClient = minioConfigUtil.getMinioClient();
+        if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(prodCode).build())) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
+            return res;
+        }
+
+        //判断文件是否已存在
+        StatObjectResponse statObject = null;
+        try {
+            statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
+        } catch (Exception e) {
+            statObject = null;
+        }
+        if (null == statObject) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
+            return res;
+        }
+
+        LogMinioOperate deleteParam = new LogMinioOperate();
+        if (isLogicDel) {
+            String delBucket = minioConfigUtil.getDelBucket(prodCode);
+            //判断服务桶目录是否存在
+            if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(delBucket).build())) {
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(delBucket).build());
+                MinioPolicyUtil policyUtil = new MinioPolicyUtil();
+                minioClient.setBucketPolicy(SetBucketPolicyArgs.builder().bucket(delBucket).config(policyUtil.getPolicy(delBucket)).build());
+            }
+            //逻辑删除--可移动到备份文件夹
+            minioClient.copyObject(CopyObjectArgs.builder().bucket(delBucket).object(fileName).source(CopySource.builder().bucket(prodCode).object(fileName).build()).build());
+            deleteParam.setSourceService(delBucket);
+        }
+        deleteParam.setIsDelete(CommonEnum.TRUE.getStatusVal());
+        deleteParam.setModifyUser("231");
+        deleteParam.setId(fileExist.get(0).getId());
+        minioClient.removeObject(RemoveObjectArgs.builder().bucket(prodCode).object(fileName).build());
+        logMinioOperateService.update(deleteParam);
+        res.put("STATUS", CommonEnum.S.getStatusVal());
+        res.put("MSG", "删除成功");
         return res;
     }
 }
