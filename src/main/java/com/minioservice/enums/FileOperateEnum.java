@@ -5,7 +5,8 @@ public enum FileOperateEnum {
     SELECT("0"),
     UPLOAD("1"),
     DOWNLOAD("2"),
-    DELETE("3");
+    DELETE("3"),
+    TAGSMODIFY("4");
 
     final String val;
     private FileOperateEnum(String val) {

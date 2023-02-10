@@ -1,5 +1,6 @@
 package com.minioservice.service;
 
+import com.minioservice.commonModel.ResultRes;
 import com.minioservice.entity.LogMinioOperate;
 import com.minioservice.enums.CommonEnum;
 import com.minioservice.enums.FileOperateEnum;
@@ -7,9 +8,7 @@ import com.minioservice.enums.MsgEnum;
 import com.minioservice.utils.FileHashUtil;
 import com.minioservice.utils.MinioConfigUtil;
 import com.minioservice.utils.MinioPolicyUtil;
-import com.minioservice.commonModel.ResultRes;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.messages.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,10 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -151,7 +147,13 @@ public class MinioBaseService {
         }
     }
 
-    //多文件删除
+    /**
+     * @Description: 多文件删除
+     * @param: [fileList, prodCode, token, isLogicDel]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 14:58
+     */
     public ResultRes removeFileList (List<String> fileList, String prodCode, String token, boolean isLogicDel) throws Exception {
         //token判断
         if (null == fileList || fileList.isEmpty()) {
@@ -213,6 +215,12 @@ public class MinioBaseService {
         if (null == tags || tags.isEmpty()) {
             return ResultRes.fail(MsgEnum.TAGS_IS_EMPTYT);
         }
+
+        //判断文件是否已存在:数据库
+        List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
+        if (fileExist.isEmpty()) {
+            return ResultRes.fail(MsgEnum.FILE_IS_NOT_EXIST);
+        }
         MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
         MinioClient minioClient = null;
         try {
@@ -229,6 +237,14 @@ public class MinioBaseService {
             logger.info("文件描述更新失败：" + e.getMessage());
             return ResultRes.fail("文件描述更新失败：" + e.getMessage());
         }
+        //同步更新数据库
+        LogMinioOperate modifyTags = new LogMinioOperate();
+        modifyTags.setId(fileExist.get(0).getId());
+        modifyTags.setModifyTime(new Date());
+        modifyTags.setModifyUser("456");
+        modifyTags.setFileDesc(tags);
+        modifyTags.setOperate(FileOperateEnum.TAGSMODIFY.getVal());
+        logMinioOperateService.update(modifyTags);
         return ResultRes.ok("文件描述更新成功");
     }
 
@@ -314,7 +330,6 @@ public class MinioBaseService {
             //覆盖操作，更新数据库
             uploadParam.setReplaceTime(new Date());
             uploadParam.setModifyUser("456");
-            uploadParam.setModifyTime(new Date());
             uploadParam.setId(fileExist.get(0).getId());
             //modify
             logMinioOperateService.update(uploadParam);
@@ -377,6 +392,7 @@ public class MinioBaseService {
             deleteParam.setSourceService(delBucket);
         }
         deleteParam.setIsDelete(CommonEnum.TRUE.getStatusVal());
+        deleteParam.setOperate(FileOperateEnum.DELETE.getVal());
         deleteParam.setModifyUser("231");
         deleteParam.setId(fileExist.get(0).getId());
         minioClient.removeObject(RemoveObjectArgs.builder().bucket(prodCode).object(fileName).build());
