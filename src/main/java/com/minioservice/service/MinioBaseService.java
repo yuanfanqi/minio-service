@@ -9,6 +9,7 @@ import com.minioservice.utils.MinioConfigUtil;
 import com.minioservice.utils.MinioPolicyUtil;
 import com.minioservice.commonModel.ResultRes;
 import io.minio.*;
+import io.minio.errors.*;
 import io.minio.messages.Item;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,7 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 /**
@@ -193,7 +197,41 @@ public class MinioBaseService {
             return ResultRes.ok("以下文件下载失败：" + errMsg);
         }
     }
-    //文件tags的修改
+
+    /**
+     * @Description: 文件tags的修改
+     * @param: [fileName, prodCode, token, tags]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 14:19
+     */
+    public ResultRes modifyTags (String fileName, String prodCode, String token, String tags) {
+        //token
+        if (null == fileName || fileName.isEmpty()) {
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
+        }
+        if (null == tags || tags.isEmpty()) {
+            return ResultRes.fail(MsgEnum.TAGS_IS_EMPTYT);
+        }
+        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
+        MinioClient minioClient = null;
+        try {
+            minioClient = minioConfigUtil.getMinioClient();
+        } catch (Exception e) {
+            logger.error(MsgEnum.MINIO_CONNECT_FAIL);
+            return ResultRes.fail(MsgEnum.MINIO_CONNECT_FAIL);
+        }
+        HashMap<String, String> modifyMap = new HashMap<>();
+        modifyMap.put("fileDesc", tags);
+        try {
+            minioClient.setObjectTags(SetObjectTagsArgs.builder().bucket(prodCode).object(fileName).tags(modifyMap).build());
+        } catch (Exception e) {
+            logger.info("文件描述更新失败：" + e.getMessage());
+            return ResultRes.fail("文件描述更新失败：" + e.getMessage());
+        }
+        return ResultRes.ok("文件描述更新成功");
+    }
+
 
     /**
      * @Description: 单个文件上传操作

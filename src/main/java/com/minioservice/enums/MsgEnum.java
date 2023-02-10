@@ -24,5 +24,7 @@ public class MsgEnum {
     public static final String FILE_NAME_IS_EMPTY = "文件名参数缺失";
     /** 文件不存在 */
     public static final String FILE_IS_NOT_EXIST = "文件不存在";
+    /** 文件tags参数缺失 */
+    public static final String TAGS_IS_EMPTYT = "文件tags参数缺失";
 
 }

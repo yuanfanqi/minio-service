@@ -204,5 +204,22 @@ public class MinioCommonController {
         }
     }
 
-    //文件tags的修改
+    /**
+     * @Description: 文件tags的修改（暂时支持minio和数据库的同步修改，不含中文）
+     * @param: [fileName, prodCode, token]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 13:55
+     */
+    @PostMapping("/modifyFileTags")
+    @ResponseBody
+    public ResultRes modifyFileTags (
+            @RequestParam("fileName") String fileName,
+            @RequestParam("prodCode") String prodCode,
+            @RequestParam("token") String token,
+            @RequestParam("tags") String tags
+            ) {
+        logger.info("===================进入文件tags修改接口===================");
+        return minioBaseService.modifyTags(fileName, prodCode, token, tags);
+    }
 }
