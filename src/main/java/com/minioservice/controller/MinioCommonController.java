@@ -138,11 +138,12 @@ public class MinioCommonController {
      */
     @PostMapping("/minioUploadFiles")
     @ResponseBody
-    public ResultRes uploadFiles (@RequestParam("inFileList") MultipartFile[] inFileList,
-                                       @RequestParam("prodCode") String prodCode,
-                                       @RequestParam("token") String token,
-                                       @RequestParam(value = "tags", required = false) String tags,
-                                       @RequestParam(value = "isReplace", defaultValue = "0") boolean isReplace
+    public ResultRes uploadFiles (
+            @RequestParam("inFileList") MultipartFile[] inFileList,
+            @RequestParam("prodCode") String prodCode,
+            @RequestParam("token") String token,
+            @RequestParam(value = "tags", required = false) String tags,
+            @RequestParam(value = "isReplace", defaultValue = "0") boolean isReplace
     ) {
         logger.info("===================进入多文件上传接口===================");
         //todo 参数验证

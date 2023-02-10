@@ -130,20 +130,23 @@ public class MinioBaseService {
             return ResultRes.fail(MsgEnum.FILE_IS_EMPTY);
         }
         List<String> urlList = new ArrayList<>();
-        String errMsg = null;
+        String errMsg = "";
         for (MultipartFile file : inFileList) {
             Map<String, String> fileRes = uploadOperate(file, prodCode, desc, isReplace);
             if (CommonEnum.S.getStatusVal().equals(fileRes.get("STATUS"))) {
                 urlList.add(fileRes.get("MSG"));
             } else {
-                errMsg += file.getOriginalFilename();
+                errMsg += file.getOriginalFilename() + "，";
             }
+        }
+        if (!"".equals(errMsg)) {
+            errMsg = errMsg.substring(0, errMsg.length() - 1);
         }
         logger.info(errMsg);
         if (urlList.isEmpty()) {
             return ResultRes.fail("上传失败：" + errMsg);
         } else {
-            return ResultRes.ok(null == errMsg ? null : "上传失败：" + errMsg, urlList);
+            return ResultRes.ok("".equals(errMsg) ? null : "上传失败：" + errMsg, urlList);
         }
     }
 
@@ -159,16 +162,17 @@ public class MinioBaseService {
         if (null == fileList || fileList.isEmpty()) {
             ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
         }
-        String errMsg = null;
+        String errMsg = "";
         for (String file : fileList) {
             Map<String, String> operateRes = removeOperate(file, prodCode, isLogicDel);
             if (CommonEnum.E.getStatusVal().equals(operateRes.get("STATUS"))) {
-                errMsg += file;
+                errMsg += file + "，";
             }
         }
-        if (null == errMsg) {
+        if ("".equals(errMsg)) {
             return ResultRes.ok("文件全部删除成功");
         } else {
+            errMsg = errMsg.substring(0, errMsg.length() - 1);
             return ResultRes.ok("以下文件删除失败：" + errMsg);
         }
     }
@@ -186,16 +190,17 @@ public class MinioBaseService {
             logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
             return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
         }
-        String errMsg = null;
+        String errMsg = "";
         for (String fileName : fileList) {
             Map<String, String> downloadOperate = downloadOperate(fileName, prodCode, path);
             if (CommonEnum.E.getStatusVal().equals(downloadOperate.get("STATUS"))) {
                 errMsg += fileName;
             }
         }
-        if (null == errMsg) {
+        if ("".equals(errMsg)) {
             return ResultRes.ok("文件下载成功");
         } else {
+            errMsg = errMsg.substring(0, errMsg.length() - 1);
             return ResultRes.ok("以下文件下载失败：" + errMsg);
         }
     }
@@ -219,6 +224,7 @@ public class MinioBaseService {
         //判断文件是否已存在:数据库
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
         if (fileExist.isEmpty()) {
+            logger.info("文件描述更新失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             return ResultRes.fail(MsgEnum.FILE_IS_NOT_EXIST);
         }
         MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
@@ -226,7 +232,7 @@ public class MinioBaseService {
         try {
             minioClient = minioConfigUtil.getMinioClient();
         } catch (Exception e) {
-            logger.error(MsgEnum.MINIO_CONNECT_FAIL);
+            logger.error("文件描述更新失败：" + MsgEnum.MINIO_CONNECT_FAIL);
             return ResultRes.fail(MsgEnum.MINIO_CONNECT_FAIL);
         }
         HashMap<String, String> modifyMap = new HashMap<>();
@@ -352,6 +358,7 @@ public class MinioBaseService {
         //判断文件是否已存在:数据库
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
         if (fileExist.isEmpty()) {
+            logger.info("文件删除失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
             return res;
@@ -360,6 +367,7 @@ public class MinioBaseService {
         MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
         MinioClient minioClient = minioConfigUtil.getMinioClient();
         if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(prodCode).build())) {
+            logger.info("文件删除失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
             return res;
@@ -373,6 +381,7 @@ public class MinioBaseService {
             statObject = null;
         }
         if (null == statObject) {
+            logger.info("文件删除失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", MsgEnum.FILE_IS_NOT_EXIST);
             return res;
@@ -417,6 +426,7 @@ public class MinioBaseService {
         //判断文件是否已存在:数据库
         List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
         if (fileExist.isEmpty()) {
+            logger.info("文件下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             return res;
@@ -428,10 +438,12 @@ public class MinioBaseService {
         try {
             statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
             if (null == statObject) {
+                logger.info("文件下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
                 res.put("STATUS", CommonEnum.E.getStatusVal());
                 res.put("MSG", "下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
             }
         } catch (Exception e) {
+            logger.info("文件下载失败：" + e.getMessage());
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "下载失败：" + e.getMessage());
         }
@@ -439,6 +451,7 @@ public class MinioBaseService {
         try {
             minioClient.downloadObject(DownloadObjectArgs.builder().bucket(prodCode).object(fileName).filename(path).build());
         } catch (Exception e) {
+            logger.info("文件下载失败：" + e.getMessage());
             res.put("STATUS", CommonEnum.E.getStatusVal());
             res.put("MSG", "下载失败：" + e.getMessage());
         }
