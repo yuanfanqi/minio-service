@@ -40,7 +40,7 @@ public class MinioCommonController {
                              @RequestParam("prodCode") String prodCode,
                              @RequestParam("token") String token,
                              @RequestParam(value = "tags",required = false) String tags,
-                             @RequestParam("isReplace") boolean isReplace
+                             @RequestParam(value = "isReplace", defaultValue = "0") boolean isReplace
     ) {
         logger.info("===================进入文件上传接口===================");
         //todo 参数验证
@@ -48,7 +48,7 @@ public class MinioCommonController {
         try {
             return minioBaseService.doUpload(inFile, prodCode, token, tags, isReplace);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error("文件上传失败：" + e.getMessage());
             return ResultRes.fail("文件上传失败：" + e.getMessage());
         }
     }
@@ -66,13 +66,14 @@ public class MinioCommonController {
             @RequestParam("fileName") String fileName,
             @RequestParam("prodCode") String prodCode,
             @RequestParam("token") String token,
-            @RequestParam("isLogicDel") boolean isLogicDel
+            @RequestParam(value = "isLogicDel", defaultValue = "1") boolean isLogicDel
     ) {
         logger.info("===================进入文件删除接口===================");
         //todo token验证
         try {
             return minioBaseService.removeFile(fileName, prodCode, token, isLogicDel);
         } catch (Exception e) {
+            logger.error("文件删除失败：" + e.getMessage());
             return ResultRes.fail("文件删除失败：" + e.getMessage());
         }
     }
@@ -104,24 +105,28 @@ public class MinioCommonController {
         return res;
     }
 
+    /**
+     * @Description: 文件下载
+     * @param: [fileName, prodCode, downloadPath, token]
+     * @return: ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 10:29
+     */
     @PostMapping("/doDownload")
     @ResponseBody
-    public Map<String, String> doDownload(
+    public ResultRes doDownload(
             @RequestParam("fileName") String fileName,
             @RequestParam("prodCode") String prodCode,
             @RequestParam("downloadPath") String downloadPath,
             @RequestParam("token") String token
     ) {
         logger.info("===================进入文件下载接口===================");
-        Map<String, String> res = new HashMap<String, String>();
         try {
-            res = minioBaseService.doDownload(fileName, prodCode, token, downloadPath);
+            return minioBaseService.doDownload(fileName, prodCode, token, downloadPath);
         } catch (Exception e) {
-            res.put("STATUS", "E");
-            res.put("MSG", "下载失败：" + e.getMessage());
+            logger.error("下载失败：" + e.getMessage());
+            return ResultRes.fail("下载失败：" + e.getMessage());
         }
-        logger.info("===================文件下载接口结束===================");
-        return res;
     }
 
     /**
@@ -136,8 +141,8 @@ public class MinioCommonController {
     public ResultRes uploadFiles (@RequestParam("inFileList") MultipartFile[] inFileList,
                                        @RequestParam("prodCode") String prodCode,
                                        @RequestParam("token") String token,
-                                       @RequestParam(value = "tags",required = false) String tags,
-                                       @RequestParam("isReplace") boolean isReplace
+                                       @RequestParam(value = "tags", required = false) String tags,
+                                       @RequestParam(value = "isReplace", defaultValue = "0") boolean isReplace
     ) {
         logger.info("===================进入多文件上传接口===================");
         //todo 参数验证
@@ -145,7 +150,7 @@ public class MinioCommonController {
         try {
             return minioBaseService.doUploadFiles(inFileList, prodCode, token, tags, isReplace);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            logger.error("多文件上传失败：" + e.getMessage());
             return ResultRes.fail("多文件上传失败：" + e.getMessage());
         }
     }
@@ -163,20 +168,41 @@ public class MinioCommonController {
             @RequestParam("fileList") List<String> fileList,
             @RequestParam("prodCode") String prodCode,
             @RequestParam("token") String token,
-            @RequestParam("isLogicDel") boolean isLogicDel
+            @RequestParam(value = "isLogicDel", defaultValue = "1") boolean isLogicDel
     ) {
         logger.info("===================进入文件删除接口===================");
         //todo token验证
         try {
             return minioBaseService.removeFileList(fileList, prodCode, token, isLogicDel);
         } catch (Exception e) {
-            logger.info(e.getMessage());
+            logger.info("删除失败：" + e.getMessage());
             return ResultRes.fail("删除失败：" + e.getMessage());
         }
     }
-    //多文件下载
 
-    //多文件删除
+    /**
+     * @Description: 多文件下载
+     * @param: [fileList, prodCode, downloadPath, token]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 13:27
+     */
+    @PostMapping("/doDownloadFiles")
+    @ResponseBody
+    public ResultRes doDownloadFiles(
+            @RequestParam("fileList") List<String> fileList,
+            @RequestParam("prodCode") String prodCode,
+            @RequestParam("downloadPath") String downloadPath,
+            @RequestParam("token") String token
+    ) {
+        logger.info("===================进入多文件下载接口===================");
+        try {
+            return minioBaseService.doDownloadFiles(fileList, prodCode, token, downloadPath);
+        } catch (Exception e) {
+            logger.info("下载失败：" + e.getMessage());
+            return ResultRes.fail("下载失败：" + e.getMessage());
+        }
+    }
 
     //文件tags的修改
 }

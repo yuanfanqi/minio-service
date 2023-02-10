@@ -20,8 +20,8 @@ public class MsgEnum {
     public static final String NO_AUTH_REPLACE_FILE = "上传失败：上传文件已存在，且未授权覆盖";
     /** 上传失败：minIO建立连接失败 */
     public static final String MINIO_CONNECT_FAIL = "上传失败：minIO建立连接失败";
-    /** 删除失败：文件名参数缺失 */
-    public static final String FILE_NAME_IS_EMPTY = "删除失败：文件名参数缺失";
+    /** 文件名参数缺失 */
+    public static final String FILE_NAME_IS_EMPTY = "文件名参数缺失";
     /** 文件不存在 */
     public static final String FILE_IS_NOT_EXIST = "文件不存在";
 

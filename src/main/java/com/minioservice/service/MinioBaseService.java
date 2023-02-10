@@ -96,51 +96,22 @@ public class MinioBaseService {
     /**
      * @Description: 文件下载
      * @param: [fileName, prodCode, token, path]
-     * @return: java.util.Map<java.lang.String,java.lang.String>
+     * @return: ResultRes
      * @Author: song
      * @Date: 2023/2/8 17:38
      */
-    public Map<String, String> doDownload (String fileName, String prodCode, String token, String path) {
-        Map<String, String> res = new HashMap<String, String>();
-        res.put("STATUS", CommonEnum.S.getStatusVal());
-        res.put("MSG", "下载成功");
-
-        //判断文件是否已存在:数据库
-        List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
-        if (fileExist.isEmpty()) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "删除失败：该文件不存在");
-            return res;
+    public ResultRes doDownload (String fileName, String prodCode, String token, String path) {
+        //token
+        if (null == fileName || fileName.isEmpty()) {
+            logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
         }
-
-        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
-        MinioClient minioClient = minioConfigUtil.getMinioClient();
-        StatObjectResponse statObject = null;
-        try {
-            statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
-            if (null == statObject) {
-                res.put("STATUS", CommonEnum.E.getStatusVal());
-                res.put("MSG", "下载失败：文件不存在");
-            }
-        } catch (Exception e) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "下载失败：" + e.getMessage());
+        Map<String, String> downloadOperate = downloadOperate(fileName, prodCode, path);
+        if (CommonEnum.E.getStatusVal().equals(downloadOperate.get("STATUS"))) {
+            return ResultRes.fail(downloadOperate.get("MSG"));
+        } else {
+            return ResultRes.ok(downloadOperate.get("MSG"));
         }
-        path = path + "/" + statObject.object();
-        try {
-            minioClient.downloadObject(DownloadObjectArgs.builder().bucket(prodCode).object(fileName).filename(path).build());
-        } catch (Exception e) {
-            res.put("STATUS", CommonEnum.E.getStatusVal());
-            res.put("MSG", "下载失败：" + e.getMessage());
-        }
-        logger.info("=================文件下载完成=================");
-        //更新数据库（下载
-        LogMinioOperate modifyParam = new LogMinioOperate();
-        modifyParam.setModifyUser("123");
-        modifyParam.setOperate(FileOperateEnum.DOWNLOAD.getVal());
-        modifyParam.setId(fileExist.get(0).getId());
-        logMinioOperateService.update(modifyParam);
-        return res;
     }
 
     /**
@@ -186,17 +157,42 @@ public class MinioBaseService {
         for (String file : fileList) {
             Map<String, String> operateRes = removeOperate(file, prodCode, isLogicDel);
             if (CommonEnum.E.getStatusVal().equals(operateRes.get("STATUS"))) {
-                errMsg += operateRes.get("MSG");
+                errMsg += file;
             }
         }
         if (null == errMsg) {
             return ResultRes.ok("文件全部删除成功");
         } else {
-            return ResultRes.ok("文件部分删除成功：" + errMsg);
+            return ResultRes.ok("以下文件删除失败：" + errMsg);
         }
     }
-    //多文件下载
-    //多文件删除
+
+    /**
+     * @Description: 多文件下载
+     * @param: [fileList, prodCode, token, path]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 13:25
+     */
+    public ResultRes doDownloadFiles (List<String> fileList, String prodCode, String token, String path) {
+        //token
+        if (null == fileList || fileList.isEmpty()) {
+            logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
+        }
+        String errMsg = null;
+        for (String fileName : fileList) {
+            Map<String, String> downloadOperate = downloadOperate(fileName, prodCode, path);
+            if (CommonEnum.E.getStatusVal().equals(downloadOperate.get("STATUS"))) {
+                errMsg += fileName;
+            }
+        }
+        if (null == errMsg) {
+            return ResultRes.ok("文件下载成功");
+        } else {
+            return ResultRes.ok("以下文件下载失败：" + errMsg);
+        }
+    }
     //文件tags的修改
 
     /**
@@ -349,6 +345,56 @@ public class MinioBaseService {
         logMinioOperateService.update(deleteParam);
         res.put("STATUS", CommonEnum.S.getStatusVal());
         res.put("MSG", "删除成功");
+        return res;
+    }
+
+    /**
+     * @Description: 文件下载操作
+     * @param: [fileName, prodCode, path]
+     * @return: java.util.Map<java.lang.String,java.lang.String>
+     * @Author: song
+     * @Date: 2023/2/10 13:19
+     */
+    private Map<String, String> downloadOperate (String fileName, String prodCode, String path){
+        Map<String, String> res = new HashMap<String, String>();
+        res.put("STATUS", CommonEnum.S.getStatusVal());
+        res.put("MSG", "下载成功");
+
+        //判断文件是否已存在:数据库
+        List<LogMinioOperate> fileExist = logMinioOperateService.isFileExist(fileName, null, prodCode);
+        if (fileExist.isEmpty()) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", "下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
+            return res;
+        }
+
+        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
+        MinioClient minioClient = minioConfigUtil.getMinioClient();
+        StatObjectResponse statObject = null;
+        try {
+            statObject = minioClient.statObject(StatObjectArgs.builder().bucket(prodCode).object(fileName).build());
+            if (null == statObject) {
+                res.put("STATUS", CommonEnum.E.getStatusVal());
+                res.put("MSG", "下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
+            }
+        } catch (Exception e) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", "下载失败：" + e.getMessage());
+        }
+        path = path + "/" + statObject.object();
+        try {
+            minioClient.downloadObject(DownloadObjectArgs.builder().bucket(prodCode).object(fileName).filename(path).build());
+        } catch (Exception e) {
+            res.put("STATUS", CommonEnum.E.getStatusVal());
+            res.put("MSG", "下载失败：" + e.getMessage());
+        }
+        logger.info("=================文件下载完成=================");
+        //更新数据库（下载
+        LogMinioOperate modifyParam = new LogMinioOperate();
+        modifyParam.setModifyUser("123");
+        modifyParam.setOperate(FileOperateEnum.DOWNLOAD.getVal());
+        modifyParam.setId(fileExist.get(0).getId());
+        logMinioOperateService.update(modifyParam);
         return res;
     }
 }
