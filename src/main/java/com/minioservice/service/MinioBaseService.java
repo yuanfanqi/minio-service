@@ -16,8 +16,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * @Author: song
@@ -464,4 +469,110 @@ public class MinioBaseService {
         logMinioOperateService.update(modifyParam);
         return res;
     }
+
+
+    /**
+     * @Description: 文件下载
+     * @param: [fileName, prodCode, token, path]
+     * @return: ResultRes
+     * @Author: song
+     * @Date: 2023/2/8 17:38
+     */
+    /*public ResultRes doDownload (String fileName, <> data, HttpServletResponse response) {
+        //token
+        String userId = tokenUtil.getUserId(data);
+        String prodCode = data.getProdCode();
+        if (null == fileName || fileName.isEmpty()) {
+            logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
+        }
+        //文件是否存在
+        Long fileId = this.getFileId(fileName, null, prodCode);
+        if (null == fileId) {
+            logger.info("文件下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
+            return ResultRes.fail("下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
+        }
+
+        MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
+        MinioClient minioClient = minioConfigUtil.getMinioClient();
+        try {
+            InputStream fileStream =  minioClient.getObject(GetObjectArgs.builder().bucket(prodCode).object(fileName).build());
+            response.setHeader("Content-Disposition", "attachment;filename=" + fileName);
+            ServletOutputStream outputStream = response.getOutputStream();
+            byte[] buf = new byte[1024];
+            int len = 0;
+            while (0 < (len = fileStream.read(buf))) {
+                outputStream.write(buf, 0 , len);
+            }
+            fileStream.close();
+            outputStream.close();
+        } catch (Exception e) {
+            logger.info("文件下载失败：" + e.getMessage());
+            return ResultRes.fail("文件下载失败：" + e.getMessage());
+        }
+        logger.info("=================文件下载完成=================");
+        //更新数据库（下载
+        return ResultRes.ok("下载成功");
+    }*/
+
+    /**
+     * @Description: 多文件下载
+     * @param: [fileList, prodCode, token, path]
+     * @return: com.minioservice.commonModel.ResultRes
+     * @Author: song
+     * @Date: 2023/2/10 13:25
+     */
+    /*public ResultRes doDownloadFiles (List<String> fileList,  data, HttpServletResponse response) {
+        //获取用户信息
+        String userId = tokenUtil.getUserId(data);
+        String prodCode = data.getProdCode();
+        if (null == fileList || fileList.isEmpty()) {
+            logger.info(MsgEnum.FILE_NAME_IS_EMPTY);
+            return ResultRes.fail(MsgEnum.FILE_NAME_IS_EMPTY);
+        }
+
+        ZipOutputStream zipOutputStream = null;
+        String errMsg = "";
+        try {
+            zipOutputStream = new ZipOutputStream(response.getOutputStream());
+            MinioConfigUtil minioConfigUtil = new MinioConfigUtil();
+            MinioClient minioClient = minioConfigUtil.getMinioClient();
+            response.setHeader("Content-Disposition", "attachment;filename=" + (new Date()).getTime() + ".zip");
+
+            for (String fileName : fileList) {
+                //文件是否存在
+                Long fileId = this.getFileId(fileName, null, data.getProdCode());
+                if (null == fileId) {
+                    logger.info(fileName + "文件下载失败：" + MsgEnum.FILE_IS_NOT_EXIST);
+                    errMsg += fileName + ",";
+                    continue;
+                }
+                zipOutputStream.putNextEntry(new ZipEntry(fileName));
+                InputStream fileStream =  minioClient.getObject(GetObjectArgs.builder().bucket(prodCode).object(fileName).build());
+
+                byte[] buf = new byte[1024];
+                int len = 0;
+                while (0 < (len = fileStream.read(buf))) {
+                    zipOutputStream.write(buf, 0 , len);
+                }
+                fileStream.close();
+                //更新数据库（下载
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                zipOutputStream.flush();
+                zipOutputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        if ("".equals(errMsg)) {
+            return ResultRes.ok("文件下载成功");
+        } else {
+            errMsg = errMsg.substring(0, errMsg.length() - 1);
+            return ResultRes.ok("以下文件下载失败：" + errMsg);
+        }
+    }*/
 }

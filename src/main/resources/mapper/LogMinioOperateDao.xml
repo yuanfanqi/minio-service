@@ -212,12 +212,10 @@
         from log_minio_operate
         <where>
             source_service = #{sourceService}
-            and is_delete = "0"
+            and is_delete = '0'
             and (file_name = #{fileName} or file_hash = #{fileHash})
         </where>
     </select>
-
-<!--    通过hash和name更新数据操作记录-->
 
 </mapper>
 
